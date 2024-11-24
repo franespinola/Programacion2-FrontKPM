@@ -62,7 +62,7 @@ fun DispositivoListScreen() {
             onBack = { selectedDispositivo.value = null },
             onVentaExitosa = {
                 println("Compra realizada con éxito")
-                selectedDispositivo.value = null // Vuelve a la lista tras la compra
+                selectedDispositivo.value = null
             },
             onError = { mensaje ->
                 println("Error durante la compra: $mensaje")
@@ -82,8 +82,6 @@ fun DispositivoListScreen() {
         }
     }
 }
-
-
 
 @Composable
 fun DispositivoList(
@@ -122,31 +120,37 @@ fun DispositivoList(
     }
 }
 
-
 @Composable
 fun DispositivoDetailsScreen(
     dispositivoDetails: DispositivoWithDetails,
     onBack: () -> Unit,
-    onVentaExitosa: () -> Unit, // Callback para manejar el éxito
-    onError: (String) -> Unit // Callback para manejar errores
+    onVentaExitosa: () -> Unit,
+    onError: (String) -> Unit
 ) {
+    println("Adicionales recibidos: ${dispositivoDetails.adicionales}")
     val selectedOpciones = remember { mutableStateMapOf<String, Opcion>() }
     val selectedAdicionales = remember { mutableStateMapOf<Int, Boolean>() }
 
+    val basePlusPersonalizations by remember {
+        derivedStateOf {
+            dispositivoDetails.dispositivo.precioBase + selectedOpciones.values.sumOf { it.precioAdicional }
+        }
+    }
+
     val totalPrice by remember {
         derivedStateOf {
-            val personalizacionPrice = selectedOpciones.values.sumOf { it.precioAdicional }
             val adicionalPrice = selectedAdicionales.filterValues { it }.keys.sumOf { id ->
                 val adicional = dispositivoDetails.adicionales.firstOrNull { it.id == id }
                 if (adicional != null && adicional.precioGratis != -1.0 &&
-                    dispositivoDetails.dispositivo.precioBase + personalizacionPrice >= adicional.precioGratis
+                    basePlusPersonalizations >= adicional.precioGratis
                 ) {
-                    0.0 // Si entra en promoción, no suma el precio
+                    println("Adicional en promoción: ${adicional.nombre}")
+                    0.0
                 } else {
                     adicional?.precio ?: 0.0
                 }
             }
-            dispositivoDetails.dispositivo.precioBase + personalizacionPrice + adicionalPrice
+            basePlusPersonalizations + adicionalPrice
         }
     }
 
@@ -173,14 +177,12 @@ fun DispositivoDetailsScreen(
                 Text(text = dispositivoDetails.dispositivo.descripcion, style = MaterialTheme.typography.body1)
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Características
                 Text(text = "Características:", style = MaterialTheme.typography.subtitle1)
                 dispositivoDetails.caracteristicas.forEach { caracteristica ->
                     Text(text = "- ${caracteristica.nombre}: ${caracteristica.descripcion}")
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Personalizaciones
                 Text(text = "Personalizaciones:", style = MaterialTheme.typography.subtitle1)
                 dispositivoDetails.personalizaciones.forEach { personalizacion ->
                     PersonalizacionItem(personalizacion, selectedOpciones)
@@ -188,11 +190,11 @@ fun DispositivoDetailsScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Adicionales
             item {
                 AdicionalesSection(
                     adicionales = dispositivoDetails.adicionales,
-                    selectedAdicionales = selectedAdicionales
+                    selectedAdicionales = selectedAdicionales,
+                    basePlusPersonalizations = basePlusPersonalizations
                 )
             }
         }
@@ -292,8 +294,6 @@ fun realizarVenta(
     }
 }
 
-
-
 @Composable
 fun PersonalizacionItem(
     personalizacion: Personalizacion,
@@ -324,16 +324,19 @@ fun PersonalizacionItem(
     }
 }
 
-
-
 @Composable
-fun AdicionalItem(adicional: Adicional, selectedAdicionales: MutableMap<Int, Boolean>) {
+fun AdicionalItem(
+    adicional: Adicional,
+    selectedAdicionales: MutableMap<Int, Boolean>,
+    basePlusPersonalizations: Double
+) {
+    val enPromocion = adicional.precioGratis != -1.0 && basePlusPersonalizations >= adicional.precioGratis
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp) // Espaciado entre cada ítem
+            .padding(8.dp)
             .clickable {
-                // Alternar la selección del adicional
                 val currentSelection = selectedAdicionales[adicional.id] ?: false
                 selectedAdicionales[adicional.id] = !currentSelection
             },
@@ -352,10 +355,10 @@ fun AdicionalItem(adicional: Adicional, selectedAdicionales: MutableMap<Int, Boo
                 style = MaterialTheme.typography.body1
             )
             Text(
-                text = if (adicional.precioGratis > 0) {
-                    "Precio: $${String.format("%.2f", adicional.precio)} (Promoción > $${adicional.precioGratis})"
+                text = if (enPromocion) {
+                    "Precio: Gratis (Promoción)"
                 } else {
-                    "Precio: $${String.format("%.2f", adicional.precio)} (Sin promoción)"
+                    "Precio: $${String.format("%.2f", adicional.precio)}"
                 },
                 style = MaterialTheme.typography.body2,
                 color = MaterialTheme.colors.secondary
@@ -367,26 +370,33 @@ fun AdicionalItem(adicional: Adicional, selectedAdicionales: MutableMap<Int, Boo
 @Composable
 fun AdicionalesSection(
     adicionales: List<Adicional>,
-    selectedAdicionales: MutableMap<Int, Boolean>
+    selectedAdicionales: MutableMap<Int, Boolean>,
+    basePlusPersonalizations: Double
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp) // Espaciado para toda la sección
+            .padding(16.dp)
     ) {
         Text(text = "Adicionales:", style = MaterialTheme.typography.h6)
         Spacer(modifier = Modifier.height(8.dp))
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp) // Limita la altura para que no ocupe toda la pantalla
+                .height(200.dp)
         ) {
             items(adicionales) { adicional ->
-                AdicionalItem(adicional, selectedAdicionales)
+                AdicionalItem(
+                    adicional = adicional,
+                    selectedAdicionales = selectedAdicionales,
+                    basePlusPersonalizations = basePlusPersonalizations
+                )
             }
         }
     }
 }
+
+
 
 
 

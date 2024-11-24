@@ -13,6 +13,12 @@ class DataAssembler(private val apiService: ApiService) {
         val adicionales = apiService.getAdicionales() // Lista de adicionales
         val caracteristicas = apiService.getCaracteristicas() // Lista de características
 
+        println("Dispositivos recibidos: ${dispositivos.size}")
+        println("Personalizaciones recibidas: ${personalizaciones.size}")
+        println("Adicionales recibidos: ${adicionales.size}")
+        println("Adicionales Detalles: $adicionales")
+
+
         dispositivos.map { dispositivo ->
             // Filtrar personalizaciones para este dispositivo
             val dispositivoPersonalizaciones = personalizaciones
