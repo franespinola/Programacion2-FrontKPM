@@ -13,7 +13,7 @@ object RetrofitClient {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
-            .client(getOkHttpClient()) // Usa el cliente con el interceptor y tiempos de espera
+            .client(getOkHttpClient())
             .build()
     }
 
@@ -22,7 +22,7 @@ object RetrofitClient {
     }
 
     private fun getOkHttpClient(): OkHttpClient {
-        val token = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTczMjQ1OTQ1MCwiYXV0aCI6IlJPTEVfQURNSU4gUk9MRV9VU0VSIiwiaWF0IjoxNzMyMzczMDUwfQ.JH7dT4HV_LdqKwy-kxGdCWG9ntEWnAG4mlsiO8P0gDCpqFQNX5eI8Hl_FkGWnDougziDoPQj4TgFJBzMTAF-iw" // Reemplaza con tu token real
+        val token = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTczMjk3ODA3OSwiYXV0aCI6IlJPTEVfQURNSU4gUk9MRV9VU0VSIiwiaWF0IjoxNzMyODkxNjc5fQ.MWAdPokg5V0jGslZ8TvAdWN7J-BUAB4bxXps8hXrjP0WA7s_i00TfGO4NX75MupSIt-CvGhYpd3jo5tSVwaFkg"
 
         return OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS) // Configura tiempo de espera al conectar

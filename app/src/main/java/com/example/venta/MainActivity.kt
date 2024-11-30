@@ -3,11 +3,16 @@ package com.example.venta
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -121,13 +126,223 @@ fun DispositivoList(
 }
 
 @Composable
+fun PurchaseDetailsScreen(
+    dispositivoDetails: DispositivoWithDetails,
+    selectedOpciones: Map<String, Opcion>,
+    selectedAdicionales: Map<Int, Boolean>,
+    totalPrice: Double,
+    onDismiss: () -> Unit
+) {
+    // Obtener la lista de adicionales seleccionados
+    val adicionalesSeleccionados = dispositivoDetails.adicionales.filter { adicional ->
+        selectedAdicionales[adicional.id] == true
+    }
+
+    // Calcular los precios de los adicionales, considerando promociones
+    val adicionalesConPrecio = adicionalesSeleccionados.map { adicional ->
+        val precioAdicional = if (adicional.precioGratis != -1.0 &&
+            dispositivoDetails.dispositivo.precioBase + selectedOpciones.values.sumOf { it.precioAdicional } >= adicional.precioGratis
+        ) {
+            0.0
+        } else {
+            adicional.precio
+        }
+        Pair(adicional.nombre, precioAdicional)
+    }
+
+    // Layout principal
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colors.background)
+    ) {
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            // Título
+            Text(
+                text = "¡Compra Exitosa!",
+                style = MaterialTheme.typography.h4.copy(color = MaterialTheme.colors.primary),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            // Icono de éxito
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = "Compra Exitosa",
+                tint = MaterialTheme.colors.primary,
+                modifier = Modifier
+                    .size(80.dp)
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 24.dp)
+            )
+
+            // Detalles del Dispositivo
+            Card(
+                elevation = 8.dp,
+                modifier = Modifier.fillMaxWidth(),
+                backgroundColor = MaterialTheme.colors.surface
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = dispositivoDetails.dispositivo.nombre,
+                        style = MaterialTheme.typography.h6,
+                        color = MaterialTheme.colors.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = dispositivoDetails.dispositivo.descripcion,
+                        style = MaterialTheme.typography.body2,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Precio Base: ${dispositivoDetails.dispositivo.precioBase} ${dispositivoDetails.dispositivo.moneda}",
+                        style = MaterialTheme.typography.body1,
+                        color = MaterialTheme.colors.onSurface
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Personalizaciones
+            Card(
+                elevation = 4.dp,
+                modifier = Modifier.fillMaxWidth(),
+                backgroundColor = MaterialTheme.colors.surface
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Personalizaciones",
+                        style = MaterialTheme.typography.h6,
+                        color = MaterialTheme.colors.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    selectedOpciones.forEach { (nombrePersonalizacion, opcion) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = nombrePersonalizacion,
+                                style = MaterialTheme.typography.body1,
+                                color = MaterialTheme.colors.onSurface
+                            )
+                            Text(
+                                text = "${opcion.nombre} (+${opcion.precioAdicional})",
+                                style = MaterialTheme.typography.body1,
+                                color = MaterialTheme.colors.onSurface
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Adicionales
+            Card(
+                elevation = 4.dp,
+                modifier = Modifier.fillMaxWidth(),
+                backgroundColor = MaterialTheme.colors.surface
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Adicionales",
+                        style = MaterialTheme.typography.h6,
+                        color = MaterialTheme.colors.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (adicionalesConPrecio.isNotEmpty()) {
+                        adicionalesConPrecio.forEach { (nombreAdicional, precio) ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = nombreAdicional,
+                                    style = MaterialTheme.typography.body1,
+                                    color = MaterialTheme.colors.onSurface
+                                )
+                                Text(
+                                    text = if (precio == 0.0) "Gratis (Promoción)" else "+$${String.format("%.2f", precio)}",
+                                    style = MaterialTheme.typography.body1.copy(
+                                        color = if (precio == 0.0) MaterialTheme.colors.primary else MaterialTheme.colors.onSurface
+                                    )
+                                )
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = "No se seleccionaron adicionales.",
+                            style = MaterialTheme.typography.body2,
+                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Precio Total
+            Card(
+                elevation = 4.dp,
+                modifier = Modifier.fillMaxWidth(),
+                backgroundColor = MaterialTheme.colors.surface
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Precio Total",
+                        style = MaterialTheme.typography.h6,
+                        color = MaterialTheme.colors.onSurface
+                    )
+                    Text(
+                        text = "$${String.format("%.2f", totalPrice)}",
+                        style = MaterialTheme.typography.h6.copy(color = MaterialTheme.colors.primary),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Botón para volver a la lista de dispositivos
+            Button(
+                onClick = { onDismiss() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary)
+            ) {
+                Text(
+                    text = "Volver a la lista de dispositivos",
+                    style = MaterialTheme.typography.button.copy(color = MaterialTheme.colors.onPrimary)
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
 fun DispositivoDetailsScreen(
     dispositivoDetails: DispositivoWithDetails,
     onBack: () -> Unit,
     onVentaExitosa: () -> Unit,
     onError: (String) -> Unit
 ) {
-    println("Adicionales recibidos: ${dispositivoDetails.adicionales}")
     val selectedOpciones = remember { mutableStateMapOf<String, Opcion>() }
     val selectedAdicionales = remember { mutableStateMapOf<Int, Boolean>() }
 
@@ -144,7 +359,6 @@ fun DispositivoDetailsScreen(
                 if (adicional != null && adicional.precioGratis != -1.0 &&
                     basePlusPersonalizations >= adicional.precioGratis
                 ) {
-                    println("Adicional en promoción: ${adicional.nombre}")
                     0.0
                 } else {
                     adicional?.precio ?: 0.0
@@ -154,93 +368,178 @@ fun DispositivoDetailsScreen(
         }
     }
 
+    var showConfirmationDialog by remember { mutableStateOf(false) }
+    var showPurchaseDetails by remember { mutableStateOf(false) }
     var isProcessingVenta by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Button(onClick = { onBack() }, modifier = Modifier.fillMaxWidth()) {
-            Text("Volver a la lista")
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LazyColumn(
+    if (showPurchaseDetails) {
+        PurchaseDetailsScreen(
+            dispositivoDetails = dispositivoDetails,
+            selectedOpciones = selectedOpciones,
+            selectedAdicionales = selectedAdicionales,
+            totalPrice = totalPrice,
+            onDismiss = {
+                showPurchaseDetails = false
+                onBack()
+            }
+        )
+    } else {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
-            item {
-                Text(text = dispositivoDetails.dispositivo.nombre, style = MaterialTheme.typography.h6)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = dispositivoDetails.dispositivo.descripcion, style = MaterialTheme.typography.body1)
-                Spacer(modifier = Modifier.height(16.dp))
+            // Botón para volver a la lista
+            Button(onClick = { onBack() }, modifier = Modifier.fillMaxWidth()) {
+                Text("Volver a la lista")
+            }
+            Spacer(modifier = Modifier.height(16.dp))
 
-                Text(text = "Características:", style = MaterialTheme.typography.subtitle1)
-                dispositivoDetails.caracteristicas.forEach { caracteristica ->
-                    Text(text = "- ${caracteristica.nombre}: ${caracteristica.descripcion}")
-                }
-                Spacer(modifier = Modifier.height(16.dp))
+            // Detalles del dispositivo y opciones
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                item {
+                    Text(
+                        text = dispositivoDetails.dispositivo.nombre,
+                        style = MaterialTheme.typography.h6,
+                        color = MaterialTheme.colors.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = dispositivoDetails.dispositivo.descripcion,
+                        style = MaterialTheme.typography.body1,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                Text(text = "Personalizaciones:", style = MaterialTheme.typography.subtitle1)
-                dispositivoDetails.personalizaciones.forEach { personalizacion ->
-                    PersonalizacionItem(personalizacion, selectedOpciones)
+                    Text(
+                        text = "Características:",
+                        style = MaterialTheme.typography.subtitle1,
+                        color = MaterialTheme.colors.primary
+                    )
+                    dispositivoDetails.caracteristicas.forEach { caracteristica ->
+                        Text(
+                            text = "- ${caracteristica.nombre}: ${caracteristica.descripcion}",
+                            style = MaterialTheme.typography.body2,
+                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Personalizaciones:",
+                        style = MaterialTheme.typography.subtitle1,
+                        color = MaterialTheme.colors.primary
+                    )
+                    dispositivoDetails.personalizaciones.forEach { personalizacion ->
+                        PersonalizacionItem(personalizacion, selectedOpciones)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+
+                item {
+                    AdicionalesSection(
+                        adicionales = dispositivoDetails.adicionales,
+                        selectedAdicionales = selectedAdicionales,
+                        basePlusPersonalizations = basePlusPersonalizations
+                    )
+                }
             }
 
-            item {
-                AdicionalesSection(
-                    adicionales = dispositivoDetails.adicionales,
-                    selectedAdicionales = selectedAdicionales,
-                    basePlusPersonalizations = basePlusPersonalizations
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Precio Total: $${String.format("%.2f", totalPrice)}",
+                style = MaterialTheme.typography.h5,
+                color = MaterialTheme.colors.primary,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (isProcessingVenta) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Button(
+                        onClick = { showConfirmationDialog = true },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary)
+                    ) {
+                        Text("Comprar", color = MaterialTheme.colors.onPrimary)
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Button(
+                        onClick = { onBack() },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.secondary)
+                    ) {
+                        Text("Cancelar", color = MaterialTheme.colors.onSecondary)
+                    }
+                }
+            }
+
+            // Diálogo de confirmación de compra
+            if (showConfirmationDialog) {
+                AlertDialog(
+                    onDismissRequest = { showConfirmationDialog = false },
+                    title = { Text("Confirmar compra") },
+                    text = { Text("¿Desea confirmar la compra?") },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showConfirmationDialog = false
+                                isProcessingVenta = true
+                                realizarVenta(
+                                    dispositivoDetails,
+                                    selectedOpciones,
+                                    selectedAdicionales,
+                                    totalPrice,
+                                    onVentaExitosa = {
+                                        isProcessingVenta = false
+                                        showPurchaseDetails = true
+                                    },
+                                    onError = { mensaje ->
+                                        isProcessingVenta = false
+                                        errorMessage = mensaje
+                                    }
+                                )
+                            },
+                            colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary)
+                        ) {
+                            Text("Confirmar", color = MaterialTheme.colors.onPrimary)
+                        }
+                    },
+                    dismissButton = {
+                        Button(
+                            onClick = { showConfirmationDialog = false },
+                            colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.secondary)
+                        ) {
+                            Text("Cancelar", color = MaterialTheme.colors.onSecondary)
+                        }
+                    }
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Precio Total: $${String.format("%.2f", totalPrice)}",
-            style = MaterialTheme.typography.h5,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (isProcessingVenta) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                Button(onClick = {
-                    isProcessingVenta = true
-                    realizarVenta(
-                        dispositivoDetails,
-                        selectedOpciones,
-                        selectedAdicionales,
-                        totalPrice,
-                        onVentaExitosa = {
-                            isProcessingVenta = false
-                            onVentaExitosa()
-                        },
-                        onError = { mensaje ->
-                            isProcessingVenta = false
-                            onError(mensaje)
-                        }
-                    )
-                }, modifier = Modifier.weight(1f)) {
-                    Text("Comprar")
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Button(onClick = { onBack() }, modifier = Modifier.weight(1f)) {
-                    Text("Cancelar")
-                }
+            // Mostrar mensaje de error si existe
+            errorMessage?.let { mensaje ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = mensaje,
+                    color = MaterialTheme.colors.error,
+                    style = MaterialTheme.typography.body2,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
             }
         }
     }
 }
+
 
 fun realizarVenta(
     dispositivoDetails: DispositivoWithDetails,
