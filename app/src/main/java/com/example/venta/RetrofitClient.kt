@@ -22,7 +22,7 @@ object RetrofitClient {
     }
 
     private fun getOkHttpClient(): OkHttpClient {
-        val token = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTczMjk3ODA3OSwiYXV0aCI6IlJPTEVfQURNSU4gUk9MRV9VU0VSIiwiaWF0IjoxNzMyODkxNjc5fQ.MWAdPokg5V0jGslZ8TvAdWN7J-BUAB4bxXps8hXrjP0WA7s_i00TfGO4NX75MupSIt-CvGhYpd3jo5tSVwaFkg"
+        val token = "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTczMzA2NDcxNCwiYXV0aCI6IlJPTEVfQURNSU4gUk9MRV9VU0VSIiwiaWF0IjoxNzMyOTc4MzE0fQ.xEXsjhKT50Fax_av5eI3a41JXMYVGwHeZo2JuwTnVcxsoFBnesEKv7OunOdQGl00Vn-ZnYX4koE8e4Mu81eiKg"
 
         return OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS) // Configura tiempo de espera al conectar

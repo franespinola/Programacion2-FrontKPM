@@ -9,13 +9,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DeviceUnknown
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.venta.ui.theme.VentaTheme
 import kotlinx.coroutines.Dispatchers
@@ -96,31 +101,96 @@ fun DispositivoList(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colors.background)
             .padding(16.dp)
     ) {
         items(dispositivos) { dispositivoDetails ->
-            Card(
+            DispositivoListItem(
+                dispositivo = dispositivoDetails.dispositivo,
+                onClick = { onDispositivoSelected(dispositivoDetails) }
+            )
+        }
+    }
+}
+@Composable
+fun DispositivoListItem(
+    dispositivo: Dispositivo,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .clickable { onClick() },
+        elevation = 6.dp,
+        shape = RoundedCornerShape(12.dp),
+        backgroundColor = MaterialTheme.colors.surface
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .height(100.dp)
+        ) {
+            // Imagen o ícono del dispositivo
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .clickable { onDispositivoSelected(dispositivoDetails) },
-                elevation = 4.dp
+                    .size(68.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colors.onSurface.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Text(text = dispositivoDetails.dispositivo.nombre, style = MaterialTheme.typography.h6)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = dispositivoDetails.dispositivo.descripcion, style = MaterialTheme.typography.body2)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Precio: ${dispositivoDetails.dispositivo.precioBase} ${dispositivoDetails.dispositivo.moneda}",
-                        style = MaterialTheme.typography.body1
-                    )
-                }
+                // Si tienes una URL de imagen, puedes usar Coil para cargarla
+                // Aquí usamos un ícono de marcador de posición
+                Icon(
+                    imageVector = Icons.Default.DeviceUnknown,
+                    contentDescription = "Imagen del dispositivo",
+                    tint = MaterialTheme.colors.primary,
+                    modifier = Modifier.size(40.dp)
+                )
+                // Para agregar imagen,  usar Image con painterResource
+                // Image(
+                //     painter = painterResource(id = R.drawable.placeholder),
+                //     contentDescription = "Imagen del dispositivo",
+                //     contentScale = ContentScale.Crop,
+                //     modifier = Modifier.fillMaxSize()
+                // )
             }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Detalles del dispositivo
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(1f),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = dispositivo.nombre,
+                    style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colors.onSurface
+                )
+                Text(
+                    text = dispositivo.descripcion,
+                    style = MaterialTheme.typography.body2,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f),
+                    maxLines = 2,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+                Text(
+                    text = "Precio: ${dispositivo.precioBase} ${dispositivo.moneda}",
+                    style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Medium),
+                    color = MaterialTheme.colors.primary
+                )
+            }
+
+            // Flecha de navegación
+            Icon(
+                imageVector = Icons.Default.ArrowForward,
+                contentDescription = "Ir a detalles",
+                tint = MaterialTheme.colors.onSurface.copy(alpha = 0.5f),
+                modifier = Modifier.align(Alignment.CenterVertically)
+            )
         }
     }
 }
@@ -343,9 +413,11 @@ fun DispositivoDetailsScreen(
     onVentaExitosa: () -> Unit,
     onError: (String) -> Unit
 ) {
+    // Estados para opciones seleccionadas y adicionales
     val selectedOpciones = remember { mutableStateMapOf<String, Opcion>() }
     val selectedAdicionales = remember { mutableStateMapOf<Int, Boolean>() }
 
+    // Cálculo de precios
     val basePlusPersonalizations by remember {
         derivedStateOf {
             dispositivoDetails.dispositivo.precioBase + selectedOpciones.values.sumOf { it.precioAdicional }
@@ -368,11 +440,13 @@ fun DispositivoDetailsScreen(
         }
     }
 
+    // Estados para diálogos y procesamiento
     var showConfirmationDialog by remember { mutableStateOf(false) }
     var showPurchaseDetails by remember { mutableStateOf(false) }
     var isProcessingVenta by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    // Mostrar PurchaseDetailsScreen si la compra fue exitosa
     if (showPurchaseDetails) {
         PurchaseDetailsScreen(
             dispositivoDetails = dispositivoDetails,
@@ -385,161 +459,260 @@ fun DispositivoDetailsScreen(
             }
         )
     } else {
-        Column(
+        Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .background(MaterialTheme.colors.background)
         ) {
-            // Botón para volver a la lista
-            Button(onClick = { onBack() }, modifier = Modifier.fillMaxWidth()) {
-                Text("Volver a la lista")
-            }
-            Spacer(modifier = Modifier.height(16.dp))
+            Scaffold(
+                bottomBar = {
+                    Column {
+                        // Precio Total
+                        Card(
+                            elevation = 4.dp,
+                            modifier = Modifier.fillMaxWidth(),
+                            backgroundColor = MaterialTheme.colors.surface
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Precio Total",
+                                    style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colors.onSurface
+                                )
+                                Text(
+                                    text = "$${String.format("%.2f", totalPrice)}",
+                                    style = MaterialTheme.typography.h6.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colors.primary
+                                    )
+                                )
+                            }
+                        }
 
-            // Detalles del dispositivo y opciones
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                item {
-                    Text(
-                        text = dispositivoDetails.dispositivo.nombre,
-                        style = MaterialTheme.typography.h6,
-                        color = MaterialTheme.colors.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = dispositivoDetails.dispositivo.descripcion,
-                        style = MaterialTheme.typography.body1,
-                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                    Text(
-                        text = "Características:",
-                        style = MaterialTheme.typography.subtitle1,
-                        color = MaterialTheme.colors.primary
-                    )
-                    dispositivoDetails.caracteristicas.forEach { caracteristica ->
-                        Text(
-                            text = "- ${caracteristica.nombre}: ${caracteristica.descripcion}",
-                            style = MaterialTheme.typography.body2,
-                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
-                        )
+                        // Botones de acción: Comprar y Cancelar
+                        if (isProcessingVenta) {
+                            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                        } else {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                Button(
+                                    onClick = { showConfirmationDialog = true },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(50.dp),
+                                    colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary)
+                                ) {
+                                    Text("Comprar", color = MaterialTheme.colors.onPrimary)
+                                }
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Button(
+                                    onClick = { onBack() },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(50.dp),
+                                    colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.secondary)
+                                ) {
+                                    Text("Cancelar", color = MaterialTheme.colors.onSecondary)
+                                }
+                            }
+                        }
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = "Personalizaciones:",
-                        style = MaterialTheme.typography.subtitle1,
-                        color = MaterialTheme.colors.primary
-                    )
-                    dispositivoDetails.personalizaciones.forEach { personalizacion ->
-                        PersonalizacionItem(personalizacion, selectedOpciones)
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
-
-                item {
-                    AdicionalesSection(
-                        adicionales = dispositivoDetails.adicionales,
-                        selectedAdicionales = selectedAdicionales,
-                        basePlusPersonalizations = basePlusPersonalizations
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Precio Total: $${String.format("%.2f", totalPrice)}",
-                style = MaterialTheme.typography.h5,
-                color = MaterialTheme.colors.primary,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (isProcessingVenta) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+            ) { innerPadding ->
+                Column(
+                    modifier = Modifier
+                        .padding(innerPadding)
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp)
                 ) {
-                    Button(
-                        onClick = { showConfirmationDialog = true },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary)
-                    ) {
-                        Text("Comprar", color = MaterialTheme.colors.onPrimary)
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
+                    // Botón para volver a la lista de dispositivos
                     Button(
                         onClick = { onBack() },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.secondary)
                     ) {
-                        Text("Cancelar", color = MaterialTheme.colors.onSecondary)
+                        Text("Volver a la lista", color = MaterialTheme.colors.onSecondary)
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Información del dispositivo
+                    Card(
+                        elevation = 8.dp,
+                        modifier = Modifier.fillMaxWidth(),
+                        backgroundColor = MaterialTheme.colors.surface
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = dispositivoDetails.dispositivo.nombre,
+                                style = MaterialTheme.typography.h5.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colors.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = dispositivoDetails.dispositivo.descripcion,
+                                style = MaterialTheme.typography.body1,
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Precio Base: ${dispositivoDetails.dispositivo.precioBase} ${dispositivoDetails.dispositivo.moneda}",
+                                style = MaterialTheme.typography.subtitle1,
+                                color = MaterialTheme.colors.onSurface
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Características
+                    Card(
+                        elevation = 4.dp,
+                        modifier = Modifier.fillMaxWidth(),
+                        backgroundColor = MaterialTheme.colors.surface
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Características",
+                                style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colors.primary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            dispositivoDetails.caracteristicas.forEach { caracteristica ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.Start
+                                ) {
+                                    Text(
+                                        text = "• ",
+                                        style = MaterialTheme.typography.body1,
+                                        color = MaterialTheme.colors.onSurface
+                                    )
+                                    Text(
+                                        text = "${caracteristica.nombre}: ${caracteristica.descripcion}",
+                                        style = MaterialTheme.typography.body1,
+                                        color = MaterialTheme.colors.onSurface
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Personalizaciones
+                    Card(
+                        elevation = 4.dp,
+                        modifier = Modifier.fillMaxWidth(),
+                        backgroundColor = MaterialTheme.colors.surface
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Personalizaciones",
+                                style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colors.primary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            dispositivoDetails.personalizaciones.forEach { personalizacion ->
+                                PersonalizacionItem(personalizacion, selectedOpciones)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Adicionales
+                    Card(
+                        elevation = 4.dp,
+                        modifier = Modifier.fillMaxWidth(),
+                        backgroundColor = MaterialTheme.colors.surface
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Adicionales",
+                                style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colors.primary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            AdicionalesSection(
+                                adicionales = dispositivoDetails.adicionales,
+                                selectedAdicionales = selectedAdicionales,
+                                basePlusPersonalizations = basePlusPersonalizations
+                            )
+                        }
+                    }
+
+                    // Diálogo de confirmación de compra
+                    if (showConfirmationDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showConfirmationDialog = false },
+                            title = { Text("Confirmar Compra") },
+                            text = { Text("¿Desea confirmar la compra?") },
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+                                        showConfirmationDialog = false
+                                        isProcessingVenta = true
+                                        realizarVenta(
+                                            dispositivoDetails,
+                                            selectedOpciones,
+                                            selectedAdicionales,
+                                            totalPrice,
+                                            onVentaExitosa = {
+                                                isProcessingVenta = false
+                                                showPurchaseDetails = true
+                                            },
+                                            onError = { mensaje ->
+                                                isProcessingVenta = false
+                                                errorMessage = mensaje
+                                            }
+                                        )
+                                    },
+                                    colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary)
+                                ) {
+                                    Text("Confirmar", color = MaterialTheme.colors.onPrimary)
+                                }
+                            },
+                            dismissButton = {
+                                Button(
+                                    onClick = { showConfirmationDialog = false },
+                                    colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.secondary)
+                                ) {
+                                    Text("Cancelar", color = MaterialTheme.colors.onSecondary)
+                                }
+                            }
+                        )
+                    }
+
+                    // Mostrar mensaje de error si existe
+                    errorMessage?.let { mensaje ->
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = mensaje,
+                            color = MaterialTheme.colors.error,
+                            style = MaterialTheme.typography.body2,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
                     }
                 }
-            }
-
-            // Diálogo de confirmación de compra
-            if (showConfirmationDialog) {
-                AlertDialog(
-                    onDismissRequest = { showConfirmationDialog = false },
-                    title = { Text("Confirmar compra") },
-                    text = { Text("¿Desea confirmar la compra?") },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                showConfirmationDialog = false
-                                isProcessingVenta = true
-                                realizarVenta(
-                                    dispositivoDetails,
-                                    selectedOpciones,
-                                    selectedAdicionales,
-                                    totalPrice,
-                                    onVentaExitosa = {
-                                        isProcessingVenta = false
-                                        showPurchaseDetails = true
-                                    },
-                                    onError = { mensaje ->
-                                        isProcessingVenta = false
-                                        errorMessage = mensaje
-                                    }
-                                )
-                            },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary)
-                        ) {
-                            Text("Confirmar", color = MaterialTheme.colors.onPrimary)
-                        }
-                    },
-                    dismissButton = {
-                        Button(
-                            onClick = { showConfirmationDialog = false },
-                            colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.secondary)
-                        ) {
-                            Text("Cancelar", color = MaterialTheme.colors.onSecondary)
-                        }
-                    }
-                )
-            }
-
-            // Mostrar mensaje de error si existe
-            errorMessage?.let { mensaje ->
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = mensaje,
-                    color = MaterialTheme.colors.error,
-                    style = MaterialTheme.typography.body2,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
             }
         }
     }
 }
-
 
 fun realizarVenta(
     dispositivoDetails: DispositivoWithDetails,
